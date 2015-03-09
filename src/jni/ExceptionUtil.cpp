@@ -126,27 +126,35 @@ void ExceptionUtil::HandleInvalidState(const string& message, bool fail){
 }
 
 bool ExceptionUtil::HandleTryCatch(TryCatch& tc, bool rethrow){
+
 	if(!tc.HasCaught()){
 		return false;
 	}
 
-	if(rethrow)
-	{
-		if(tc.CanContinue()){
+	if(tc.CanContinue()){
+		if(rethrow)
+		{
+			// throwing exception to java
+			// java uncaught exception handler throws it to JS
+			ThrowExceptionToJava(tc);
+		}
+		else
+		{
 			auto message = tc.Message();
 			auto error = tc.Exception();
-			OnUncaughtError(message, error); //calls JS global function("__onUncaughtError") passing the uncaught error
+			 //throws directly to JS
+			//(calls JS global function("__onUncaughtError") passing the uncaught error)
+			OnUncaughtError(message, error);
 		}
-		else {
-			auto errorMessage = PrintErrorMessage(tc.Message(), tc.Exception());
+	}
+	else {
+		auto errorMessage = PrintErrorMessage(tc.Message(), tc.Exception());
 
 			stringstream ss;
 			ss << "An uncaught error has occurred and V8's TryCatch block may not be continued. Error is: " << errorMessage;
 
 			HandleInvalidState(ss.str(), true);
-		}
 	}
-
 	return true;
 }
 
@@ -260,16 +268,17 @@ string ExceptionUtil::GetErrorStackTrace(const Handle<StackTrace>& stackTrace)
 
 bool ExceptionUtil::ThrowExceptionToJava(TryCatch& tc)
 {
+	JEnv env;
+
 	Isolate *isolate = Isolate::GetCurrent();
 	auto ex = tc.Exception();
 	string loggedMessage = PrintErrorMessage(tc.Message(), ex);
 
 	DEBUG_WRITE("Error: %s", loggedMessage.c_str());
 
+	env.ExceptionClear();
 	if (tc.CanContinue())
 	{
-		JEnv env;
-
 		jweak javaThrowable = nullptr;
 		if (ex->IsObject())
 		{

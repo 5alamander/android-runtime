@@ -866,7 +866,7 @@ void NativeScriptRuntime::RequireCallback(const v8::FunctionCallbackInfo<v8::Val
 		auto script = Script::Compile(scriptText, args[0].As<String>());
 		DEBUG_WRITE("Compiled script (module %s)", moduleName.c_str());
 
-		if(ExceptionUtil::GetInstance()->HandleTryCatch(tc, true)){
+		if(ExceptionUtil::GetInstance()->HandleTryCatch(tc, false)){
 			loadedModules.erase(modulePath);
 			tmpExportObj->Reset();
 			delete tmpExportObj;
@@ -884,7 +884,7 @@ void NativeScriptRuntime::RequireCallback(const v8::FunctionCallbackInfo<v8::Val
 
 			DEBUG_WRITE("After Running script (module %s)", moduleName.c_str());
 
-			if(ExceptionUtil::GetInstance()->HandleTryCatch(tcRequire, true)){
+			if(ExceptionUtil::GetInstance()->HandleTryCatch(tcRequire, false)){
 				loadedModules.erase(modulePath);
 				tmpExportObj->Reset();
 				delete tmpExportObj;
@@ -1073,7 +1073,7 @@ Handle<Value> NativeScriptRuntime::CallJSMethod(JNIEnv *_env, const Handle<Objec
 
 		//TODO: if javaResult is a pure js object create a java object that represents this object in java land
 
-		bool exceptionFound = exceptionUtil->HandleTryCatch(tc, true);
+		bool exceptionFound = exceptionUtil->HandleTryCatch(tc, false);
 		if (exceptionFound)
 		{
 			jsResult = Undefined(isolate);
